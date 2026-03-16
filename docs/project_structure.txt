@@ -1,0 +1,104 @@
+# Структура проекта RAG
+# Сгенерировано: 2026-03-16
+# Фронтенд: Vue 3 + Vite
+
+## Дерево файлов
+
+```
+MTK/
+├── backend/                     # FastAPI бэкенд
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py             # Точка входа FastAPI
+│   │   ├── db.py               # Инициализация ChromaDB
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   └── schemas.py      # Pydantic схемы
+│   │   ├── routers/
+│   │   │   ├── __init__.py
+│   │   │   ├── rag.py          # RAG endpoints
+│   │   │   └── documents.py    # Загрузка документов
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   └── rag_service.py  # RAG логика
+│   │   └── utils/
+│   │       └── __init__.py
+│   ├── data/
+│   │   ├── documents/          # Загруженные документы
+│   │   └── embeddings/         # Векторная база ChromaDB
+│   ├── tests/
+│   ├── .env                    # Переменные окружения
+│   ├── .env.example            # Шаблон переменных окружения
+│   ├── load_document.py        # Скрипт загрузки документов
+│   ├── test_rag.py             # Скрипт тестирования
+│   └── requirements.txt        # Python зависимости
+│
+├── frontend/                    # Vue 3 фронтенд
+│   ├── src/
+│   │   ├── assets/
+│   │   │   └── main.css        # Глобальные стили
+│   │   ├── components/
+│   │   │   └── QueryForm.vue   # Форма запроса
+│   │   ├── composables/
+│   │   │   └── api.js          # API клиент
+│   │   ├── App.vue             # Корневой компонент
+│   │   └── main.js             # Точка входа
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── postcss.config.js
+│
+├── docs/
+│   ├── nginx_setup.txt       # Инструкция по настройке nginx
+│   └── project_structure.txt # Этот файл
+│
+├── nginx/
+│   └── rag.conf              # Конфигурация nginx
+│
+├── systemd/
+│   └── rag-backend.service   # Systemd сервис для бэкенда
+│
+├── deploy.sh                 # Скрипт автоматического деплоя
+└── README.md                 # Документация проекта
+```
+
+## Описание компонентов
+
+### Бэкенд (FastAPI)
+
+| Файл | Назначение |
+|------|------------|
+| `main.py` | Инициализация FastAPI, CORS, роутеры |
+| `db.py` | Подключение к ChromaDB (векторная база) |
+| `schemas.py` | Модели запросов/ответов API |
+| `rag.py` | Endpoint `/api/query` для поиска ответов |
+| `documents.py` | Endpoints для загрузки документов |
+| `rag_service.py` | RAG логика: эмбеддинги, поиск, генерация |
+| `load_document.py` | Скрипт загрузки документов в базу |
+
+### Фронтенд (Vue 3)
+
+| Файл | Назначение |
+|------|------------|
+| `App.vue` | Корневой компонент |
+| `main.js` | Точка входа Vue приложения |
+| `QueryForm.vue` | Компонент отправки запросов |
+| `api.js` | HTTP клиент для взаимодействия с бэкендом |
+
+## API Endpoints
+
+### Backend (port 8000)
+
+| Метод | Endpoint | Описание |
+|-------|----------|----------|
+| POST | `/api/query` | Поиск ответа по документам |
+| GET | `/health` | Health check |
+
+## Технологии
+
+- **Бэкенд**: FastAPI, LangChain, ChromaDB
+- **Фронтенд**: Vue 3, Vite, Tailwind CSS
+- **Эмбеддинги**: intfloat/multilingual-e5-large (routerai.ru)
+- **LLM**: google/gemini-3.1-flash-lite-preview (routerai.ru)
+- **OpenAI Endpoint**: https://routerai.ru/api/v1
