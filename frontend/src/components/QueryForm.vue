@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { queryAPI } from '../composables/api'
 
+const emit = defineEmits(['highlight-chunks'])
+
 const query = ref('')
 const response = ref(null)
 const loading = ref(false)
@@ -17,6 +19,11 @@ async function handleSubmit() {
   try {
     const result = await queryAPI.sendQuery(query.value, 3)
     response.value = result
+    
+    // Передаем подсвеченные чанки в родительский компонент
+    if (result.sources && result.sources.length > 0) {
+      emit('highlight-chunks', result.sources.map(s => s.metadata))
+    }
   } catch (err) {
     error.value = 'Ошибка при выполнении запроса. Проверьте подключение к серверу.'
     console.error(err)

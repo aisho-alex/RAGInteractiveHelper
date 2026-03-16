@@ -14,4 +14,9 @@ export const queryAPI = {
     const response = await api.post('/query', { query, top_k: topK })
     return response.data
   },
+
+  async getDocuments() {
+    const response = await api.get('/documents/list')
+    return response.data
+  },
 }

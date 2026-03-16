@@ -158,3 +158,86 @@ def generate_answer(query: str, documents: List[Tuple[str, dict]]) -> str:
     
     response = model.invoke(messages)
     return response.content
+
+
+def get_all_documents() -> list:
+    """Получение всех документов и чанков из базы"""
+    client = get_chroma_client()
+    collection = client.get_or_create_collection("documents")
+    
+    # Получаем все документы
+    results = collection.get(
+        include=["metadatas", "documents"]
+    )
+    
+    documents = []
+    if results["documents"] and results["metadatas"]:
+        for i, doc in enumerate(results["documents"]):
+            metadata = results["metadatas"][i] if results["metadatas"] else {}
+            documents.append({
+                "id": results["ids"][i] if results["ids"] else i,
+                "chunk": metadata.get("chunk", i),
+                "text": doc,
+                "metadata": {k: v for k, v in metadata.items() if k != "text"}
+            })
+    
+    # Сортируем по chunk
+    documents.sort(key=lambda x: x["chunk"])
+    
+    return documents
+
+
+def get_full_document_text() -> str:
+    """Получение полного текста документа (первый чанк содержит начало)"""
+    client = get_chroma_client()
+    collection = client.get_or_create_collection("documents")
+    
+    # Получаем все документы
+    results = collection.get(
+        include=["documents", "metadatas"],
+        limit=1
+    )
+    
+    if results["documents"] and results["documents"][0]:
+        # Возвращаем полный текст из первого чанка (он содержит заголовок и начало)
+        # Для полного текста нужно собрать все чанки без перекрытия
+        all_results = collection.get(
+            include=["documents", "metadatas"]
+        )
+        
+        if all_results["documents"]:
+            # Собираем чанки в порядке следования
+            chunks_with_index = []
+            for i, doc in enumerate(all_results["documents"]):
+                metadata = all_results["metadatas"][i] if all_results["metadatas"] else {}
+                chunks_with_index.append({
+                    "chunk": metadata.get("chunk", i),
+                    "text": doc
+                })
+            
+            # Сортируем по chunk
+            chunks_with_index.sort(key=lambda x: x["chunk"])
+            
+            # Собираем полный текст, убирая перекрытия
+            full_text = chunks_with_index[0]["text"] if chunks_with_index else ""
+            
+            for i in range(1, len(chunks_with_index)):
+                current_chunk = chunks_with_index[i]["text"]
+                prev_chunk = chunks_with_index[i-1]["text"]
+                
+                # Находим перекрытие (последние ~100 символов предыдущего чанка)
+                overlap_size = min(100, len(prev_chunk) // 5)
+                if overlap_size > 0 and len(current_chunk) > overlap_size:
+                    overlap = prev_chunk[-overlap_size:]
+                    overlap_pos = current_chunk.find(overlap)
+                    if overlap_pos >= 0:
+                        # Добавляем только уникальную часть
+                        full_text += current_chunk[overlap_pos + len(overlap):]
+                    else:
+                        full_text += current_chunk
+                else:
+                    full_text += current_chunk
+            
+            return full_text
+    
+    return ""

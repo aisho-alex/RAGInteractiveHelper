@@ -3,9 +3,46 @@ from typing import Optional
 import pdfplumber
 import io
 from app.models.schemas import DocumentUpload, DocumentResponse
-from app.services.rag_service import add_document
+from app.services.rag_service import add_document, get_all_documents, get_full_document_text
 
 router = APIRouter()
+
+
+@router.get("/list")
+async def list_documents():
+    """Получить список всех документов и чанков"""
+    return get_all_documents()
+
+
+@router.get("/full")
+async def get_full_document():
+    """Получить полный текст документа с маппингом чанков"""
+    full_text = get_full_document_text()
+    
+    # Получаем информацию о чанках для маппинга позиций
+    all_chunks = get_all_documents()
+    
+    chunk_positions = []
+    current_pos = 0
+    
+    for chunk in all_chunks:
+        # Находим позицию чанка в полном тексте
+        chunk_start = full_text.find(chunk["text"][:50], current_pos)
+        if chunk_start >= 0:
+            # Находим конец чанка (без перекрытия)
+            chunk_end = chunk_start + len(chunk["text"])
+            chunk_positions.append({
+                "chunk": chunk["chunk"],
+                "start": chunk_start,
+                "end": chunk_end,
+                "metadata": chunk["metadata"]
+            })
+            current_pos = chunk_start
+    
+    return {
+        "text": full_text,
+        "chunks": chunk_positions
+    }
 
 
 @router.post("/upload", response_model=DocumentResponse)
