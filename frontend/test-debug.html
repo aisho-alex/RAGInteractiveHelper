@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Тест DocumentViewer</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    .success { color: green; }
+    .error { color: red; }
+    .info { color: blue; }
+    pre { background: #f5f5f5; padding: 10px; overflow: auto; max-height: 300px; }
+  </style>
+</head>
+<body>
+  <h1>Тесты DocumentViewer</h1>
+  <div id="results"></div>
+
+  <script type="module">
+    const results = document.getElementById('results')
+    
+    function log(message, type = 'info') {
+      const div = document.createElement('div')
+      div.className = type
+      div.textContent = message
+      results.appendChild(div)
+    }
+
+    async function runTests() {
+      // Тест 1: Загрузка чанков
+      log('Тест 1: Загрузка чанков...', 'info')
+      try {
+        const response = await fetch('/api/documents/list')
+        const chunks = await response.json()
+        log(`✓ Загружено чанков: ${chunks.length}`, 'success')
+        log(`  Первый чанк: ${chunks[0]?.chunk}, текст: ${chunks[0]?.text?.substring(0, 50)}...`)
+      } catch (err) {
+        log(`✗ Ошибка загрузки: ${err.message}`, 'error')
+        return
+      }
+
+      // Тест 2: Запрос к API
+      log('\nТест 2: Тестовый запрос...', 'info')
+      try {
+        const response = await fetch('/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: 'Как провести калибровку?', top_k: 3 })
+        })
+        const data = await response.json()
+        log(`✓ Получен ответ`, 'success')
+        log(`  Чанков в ответе: ${data.sources?.length || 0}`)
+        if (data.sources && data.sources.length > 0) {
+          data.sources.forEach((src, i) => {
+            log(`  Источник ${i}: chunk=${src.metadata?.chunk}`)
+          })
+        }
+      } catch (err) {
+        log(`✗ Ошибка запроса: ${err.message}`, 'error')
+      }
+
+      // Тест 3: Проверка логики выделения
+      log('\nТест 3: Логика выделения...', 'info')
+      try {
+        const chunksResponse = await fetch('/api/documents/list')
+        const chunks = await chunksResponse.json()
+        
+        const queryResponse = await fetch('/api/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: 'калибровка', top_k: 3 })
+        })
+        const queryData = await queryResponse.json()
+        
+        const highlightedChunks = queryData.sources?.map(s => s.metadata) || []
+        log(`  Подсвеченные чанки: ${highlightedChunks.map(h => h.chunk).join(', ')}`)
+        
+        // Собираем полный текст
+        const sorted = [...chunks].sort((a, b) => a.chunk - b.chunk)
+        let fullText = sorted[0]?.text || ''
+        
+        for (let i = 1; i < sorted.length; i++) {
+          const prev = sorted[i-1]?.text || ''
+          const curr = sorted[i]?.text || ''
+          const overlap = prev.slice(-100)
+          const pos = curr.indexOf(overlap)
+          fullText += pos >= 0 ? curr.slice(pos + overlap.length) : curr
+        }
+        
+        log(`  Длина полного текста: ${fullText.length}`)
+        
+        // Разбиваем на параграфы
+        const paragraphs = fullText.split('\n\n').filter(p => p.trim())
+        log(`  Параграфов: ${paragraphs.length}`)
+        
+        // Проверяем каждый параграф
+        const highlightedTexts = highlightedChunks.map(h => {
+          const chunk = chunks.find(c => c.chunk === h.chunk)
+          return chunk ? chunk.text.toLowerCase() : ''
+        }).filter(t => t)
+        
+        let highlightedCount = 0
+        paragraphs.forEach((p, i) => {
+          const pText = p.toLowerCase().trim().substring(0, 50)
+          const isHighlighted = highlightedTexts.some(ht => ht.includes(pText))
+          if (isHighlighted) {
+            highlightedCount++
+            log(`  ✓ Параграф ${i} подсвечен: "${p.substring(0, 30)}..."`)
+          }
+        })
+        
+        log(`  Всего подсвечено параграфов: ${highlightedCount}`, highlightedCount > 0 ? 'success' : 'error')
+        
+      } catch (err) {
+        log(`✗ Ошибка: ${err.message}`, 'error')
+        console.error(err)
+      }
+    }
+
+    runTests()
+  </script>
+</body>
+</html>
