@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import { queryAPI } from '../composables/api'
+import VoiceInput from './VoiceInput.vue'
+import VoiceOutput from './VoiceOutput.vue'
 
 const emit = defineEmits(['highlight-chunks'])
 
@@ -8,6 +10,11 @@ const query = ref('')
 const response = ref(null)
 const loading = ref(false)
 const error = ref(null)
+const isRecording = ref(false)
+
+function handleVoiceInput(text) {
+  query.value = text
+}
 
 async function handleSubmit() {
   if (!query.value.trim()) return
@@ -36,16 +43,27 @@ async function handleSubmit() {
 <template>
   <div class="bg-white rounded-lg shadow-md p-6 mb-6">
     <h2 class="text-xl font-semibold mb-4 text-gray-700">Запрос к документам</h2>
-    
+
     <form @submit.prevent="handleSubmit" class="space-y-4">
-      <textarea
-        v-model="query"
-        placeholder="Введите ваш вопрос по документам..."
-        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        rows="4"
-        required
-      />
-      
+      <!-- Поле ввода с кнопкой микрофона -->
+      <div class="flex gap-2">
+        <textarea
+          v-model="query"
+          placeholder="Введите ваш вопрос по документам..."
+          class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          rows="4"
+          required
+        />
+        <div class="flex flex-col gap-2">
+          <VoiceInput
+            :is-recording="isRecording"
+            @input="handleVoiceInput"
+            @start-record="isRecording = true"
+            @stop-record="isRecording = false"
+          />
+        </div>
+      </div>
+
       <button
         type="submit"
         :disabled="loading || !query.trim()"
@@ -60,7 +78,12 @@ async function handleSubmit() {
     </div>
 
     <div v-if="response" class="mt-6">
-      <h3 class="text-lg font-medium mb-3 text-gray-700">Ответ</h3>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-medium text-gray-700">Ответ</h3>
+        <!-- Кнопка озвучки -->
+        <VoiceOutput :text="response.answer" />
+      </div>
+      
       <div class="prose max-w-none mb-6">
         <p class="text-gray-800 whitespace-pre-wrap">{{ response.answer }}</p>
       </div>

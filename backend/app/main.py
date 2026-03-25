@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import rag, documents
+from app.routers import rag, documents, audio
 from app.db import init_db
 
 app = FastAPI(
@@ -24,6 +24,7 @@ init_db()
 
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 app.include_router(rag.router, prefix="/api", tags=["rag"])
+app.include_router(audio.router, prefix="/api/audio", tags=["audio"])
 
 
 @app.get("/health")

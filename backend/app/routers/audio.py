@@ -1,0 +1,55 @@
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File
+from fastapi.responses import Response
+from typing import Optional
+from app.services.tts_service import get_tts_service
+from app.services.stt_service import get_stt_service
+
+router = APIRouter()
+
+
+@router.get("/speakers")
+async def get_speakers():
+    """Получить список доступных голосов для TTS"""
+    tts = get_tts_service()
+    return {"speakers": tts.get_speakers()}
+
+
+@router.post("/tts")
+async def text_to_speech(
+    text: str = Query(..., description="Текст для синтеза"),
+    speaker: str = Query("aidar", description="Голос (aidar, baya, kseniya, xenia, eugene)"),
+    sample_rate: int = Query(48000, description="Частота дискретизации (48000 или 24000)")
+):
+    """
+    Синтез речи из текста (Silero TTS)
+    
+    Возвращает WAV аудио файл
+    """
+    try:
+        tts = get_tts_service()
+        audio_data = tts.synthesize(text, speaker, sample_rate)
+        
+        return Response(
+            content=audio_data,
+            media_type="audio/wav",
+            headers={"Content-Disposition": "attachment; filename=speech.wav"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/stt")
+async def speech_to_text(file: UploadFile = File(..., description="WAV аудио файл (16kHz, mono, 16-bit)")):
+    """
+    Распознавание речи в текст (VOSK STT)
+
+    Принимает WAV файл (16kHz, mono, 16-bit)
+    """
+    try:
+        stt = get_stt_service()
+        audio_data = await file.read()
+        text = stt.recognize(audio_data)
+
+        return {"text": text or ""}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
