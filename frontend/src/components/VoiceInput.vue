@@ -28,15 +28,18 @@ const startListening = async () => {
 
     mediaRecorder.value.onstop = async () => {
       const audioBlob = new Blob(audioChunks.value, { type: 'audio/wav' })
-      
+      console.log('Audio recorded:', audioBlob.size, 'bytes')
+
       // Отправляем на сервер для распознавания
       try {
         const result = await queryAPI.speechToText(audioBlob)
+        console.log('STT result:', result)
         if (result.text) {
           emit('input', result.text)
         }
       } catch (err) {
         console.error('STT error:', err)
+        alert('Ошибка распознавания речи: ' + (err.message || err))
       }
 
       // Останавливаем поток
