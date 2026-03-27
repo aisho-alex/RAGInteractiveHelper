@@ -26,11 +26,15 @@ export const queryAPI = {
   },
 
   async textToSpeech(text, speaker = 'aidar', sampleRate = 48000) {
-    const response = await api.post(
-      `/audio/tts?text=${encodeURIComponent(text)}&speaker=${speaker}&sample_rate=${sampleRate}`,
-      null,
-      { responseType: 'arraybuffer' }
-    )
+    // Используем POST с JSON body для длинных текстов
+    const response = await api.post('/audio/tts', {
+      text,
+      speaker,
+      sample_rate: sampleRate,
+      normalize: true
+    }, {
+      responseType: 'arraybuffer'
+    })
     // Конвертируем ArrayBuffer в Blob
     return new Blob([response.data], { type: 'audio/wav' })
   },
