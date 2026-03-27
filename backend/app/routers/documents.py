@@ -69,8 +69,12 @@ async def upload_document(
                 text = contents.decode('utf-8')
                 doc_metadata["filename"] = file.filename
                 doc_metadata["type"] = "txt"
+            elif file.filename.endswith('.md'):
+                text = contents.decode('utf-8')
+                doc_metadata["filename"] = file.filename
+                doc_metadata["type"] = "md"
             else:
-                raise HTTPException(status_code=400, detail="Неподдерживаемый формат файла. Используйте PDF или TXT")
+                raise HTTPException(status_code=400, detail="Неподдерживаемый формат файла. Используйте PDF, TXT или MD")
         
         elif text:
             doc_metadata["type"] = "text"

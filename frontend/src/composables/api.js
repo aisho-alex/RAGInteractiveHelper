@@ -20,6 +20,22 @@ export const queryAPI = {
     return response.data
   },
 
+  async uploadDocument(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post('/documents/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
+  async uploadText(text, metadata = {}) {
+    const response = await api.post('/documents/upload-text', { text, metadata })
+    return response.data
+  },
+
   async getSpeakers() {
     const response = await api.get('/audio/speakers')
     return response.data

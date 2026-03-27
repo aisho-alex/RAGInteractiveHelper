@@ -15,17 +15,17 @@ from app.services.rag_service import add_document
 def load_document(filepath: str):
     """Загрузка файла в RAG базу"""
     print(f"Загрузка документа: {filepath}")
-    
+
     with open(filepath, 'r', encoding='utf-8') as f:
         text = f.read()
-    
+
     print(f"Размер текста: {len(text)} символов")
-    
+
     doc_id = add_document(text, {
         "filename": os.path.basename(filepath),
-        "type": "md"
+        "type": os.path.splitext(filepath)[1].lower()
     })
-    
+
     print(f"Документ успешно загружен. ID: {doc_id}")
     return doc_id
 
