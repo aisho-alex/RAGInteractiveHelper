@@ -18,17 +18,19 @@ async def get_speakers():
 async def text_to_speech(
     text: str = Query(..., description="Текст для синтеза"),
     speaker: str = Query("aidar", description="Голос (aidar, baya, kseniya, xenia, eugene)"),
-    sample_rate: int = Query(48000, description="Частота дискретизации (48000 или 24000)")
+    sample_rate: int = Query(48000, description="Частота дискретизации (48000 или 24000)"),
+    normalize: bool = Query(True, description="Нормализовать текст через LLM перед синтезом")
 ):
     """
     Синтез речи из текста (Silero TTS)
-    
+
     Возвращает WAV аудио файл
     """
     try:
-        tts = get_tts_service()
-        audio_data = tts.synthesize(text, speaker, sample_rate)
-        
+        from app.utils.llm import get_llm_client
+        tts = get_tts_service(llm_client=get_llm_client())
+        audio_data = tts.synthesize(text, speaker, sample_rate, normalize=normalize)
+
         return Response(
             content=audio_data,
             media_type="audio/wav",

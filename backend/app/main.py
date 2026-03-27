@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import rag, documents, audio
 from app.db import init_db
+from app.utils.llm import get_llm_client
 
 app = FastAPI(
     title="RAG API",
@@ -21,6 +22,9 @@ app.add_middleware(
 
 # Инициализация БД при старте
 init_db()
+
+# Инициализация LLM клиента (ленивая загрузка)
+_llm = get_llm_client()
 
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
 app.include_router(rag.router, prefix="/api", tags=["rag"])

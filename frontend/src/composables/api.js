@@ -31,7 +31,8 @@ export const queryAPI = {
       null,
       { responseType: 'arraybuffer' }
     )
-    return response.data
+    // Конвертируем ArrayBuffer в Blob
+    return new Blob([response.data], { type: 'audio/wav' })
   },
 
   async speechToText(audioBlob) {
