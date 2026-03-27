@@ -104,25 +104,24 @@ class SileroTTS:
             return self._simple_normalize(text)
 
         try:
+            from langchain_core.messages import HumanMessage, SystemMessage
+            
             # Формируем запрос к LLM
             messages = [
-                {"role": "system", "content": TTS_NORMALIZE_PROMPT},
-                {"role": "user", "content": text}
+                SystemMessage(content=TTS_NORMALIZE_PROMPT),
+                HumanMessage(content=text)
             ]
 
-            # Вызываем LLM
-            response = self.llm_client.chat.completions.create(
-                model="gpt-4o-mini",  # Или другая модель
-                messages=messages,
-                temperature=0.3,  # Низкая температура для стабильности
-                max_tokens=1000
-            )
-
-            normalized = response.choices[0].message.content.strip()
+            # Вызываем LLM через LangChain invoke
+            response = self.llm_client.invoke(messages)
             
+            # Извлекаем текст из ответа
+            normalized = response.content if hasattr(response, 'content') else str(response)
+            normalized = normalized.strip()
+
             # Дополнительная очистка от возможных артефактов
             normalized = self._post_process_llm_output(normalized)
-            
+
             print(f"✓ Текст нормализован LLM: {len(text)} → {len(normalized)} символов")
             return normalized
 
@@ -201,6 +200,11 @@ class SileroTTS:
             
             print(f"🔊 TTS синтез: {len(text)} символов, голос={speaker}, sample_rate={sample_rate}")
 
+            # Silero имеет лимит ~1000 символов, разбиваем на части
+            MAX_CHARS = 900  # С запасом
+            if len(text) > MAX_CHARS:
+                return self._synthesize_chunked(text, speaker, sample_rate)
+
             # Синтез аудио
             audio = self.model.apply_tts(
                 text=text,
@@ -227,6 +231,57 @@ class SileroTTS:
         except Exception as e:
             print(f"✗ Ошибка синтеза речи: {e}")
             raise RuntimeError(f"Ошибка синтеза речи: {e}")
+
+    def _synthesize_chunked(self, text: str, speaker: str, sample_rate: int) -> bytes:
+        """
+        Синтез длинного текста с разбивкой на части
+        """
+        import numpy as np
+        
+        # Разбиваем на предложения
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        chunks = []
+        current_chunk = ""
+        
+        for sentence in sentences:
+            if len(current_chunk) + len(sentence) < 900:
+                current_chunk += (" " if current_chunk else "") + sentence
+            else:
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                current_chunk = sentence
+        
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+        
+        print(f"📦 Разбито на {len(chunks)} частей: {[len(c) for c in chunks]}")
+        
+        # Синтезируем каждую часть
+        all_audio = []
+        for i, chunk in enumerate(chunks):
+            print(f"  Часть {i+1}/{len(chunks)}: {len(chunk)} символов")
+            audio = self.model.apply_tts(
+                text=chunk,
+                speaker=speaker,
+                sample_rate=sample_rate
+            )
+            all_audio.append((audio * 32767).numpy().astype(np.int16))
+        
+        # Конкатенируем аудио
+        combined = np.concatenate(all_audio)
+        
+        # Сохраняем в WAV
+        wav_buffer = io.BytesIO()
+        import wave
+        
+        with wave.open(wav_buffer, 'wb') as wf:
+            wf.setnchannels(1)
+            wf.setsampwidth(2)
+            wf.setframerate(sample_rate)
+            wf.writeframes(combined.tobytes())
+        
+        print(f"✓ TTS готов (chunked): {len(wav_buffer.getvalue())} байт")
+        return wav_buffer.getvalue()
 
 
 # Глобальный экземпляр

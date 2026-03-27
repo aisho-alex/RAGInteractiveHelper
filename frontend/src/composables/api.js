@@ -31,7 +31,7 @@ export const queryAPI = {
       text,
       speaker,
       sample_rate: sampleRate,
-      normalize: true
+      normalize: true  // Включаем LLM нормализацию
     }, {
       responseType: 'arraybuffer'
     })
