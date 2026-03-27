@@ -22,16 +22,17 @@ class SileroTTS:
     def _load_model(self):
         """Загрузка модели Silero TTS"""
         try:
-            # Загружаем модель Silero
+            # Загружаем модель Silero (последняя версия)
             self.model, self.example_text = torch.hub.load(
                 repo_or_dir='snakers4/silero-models',
                 model='silero_tts',
                 language='ru',
-                speaker='v3_1',
-                cache=str(TTS_CACHE_DIR)
+                speaker='v4_ru',  # Используем русскую модель v4
+                cache=str(TTS_CACHE_DIR),
+                trust_repo=True
             )
             
-            # Доступные голоса для v3_1
+            # Доступные русские голоса (старые имена для совместимости)
             self.speakers = ['aidar', 'baya', 'kseniya', 'xenia', 'eugene']
             
             print("✓ Silero TTS модель загружена")
@@ -42,9 +43,9 @@ class SileroTTS:
 
     def get_speakers(self) -> List[str]:
         """Получить список доступных голосов"""
-        return self.speakers if self.speakers else ["aidar", "baya", "kseniya", "xenia", "eugene"]
+        return self.speakers if self.speakers else ['aidar', 'baya', 'kseniya']
 
-    def synthesize(self, text: str, speaker: str = "aidar", sample_rate: int = 48000) -> bytes:
+    def synthesize(self, text: str, speaker: str = "aidar", sample_rate: int =48000) -> bytes:
         """
         Синтез речи из текста
 
