@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=ubuntu
 WorkingDirectory=/home/ubuntu/rag-app/backend
-Environment="PATH=/home/ubuntu/rag-app/backend/venv/bin"
+Environment="PATH=/usr/bin:/home/ubuntu/rag-app/backend/venv/bin"
 ExecStart=/home/ubuntu/rag-app/backend/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=5

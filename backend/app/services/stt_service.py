@@ -86,13 +86,17 @@ class VoskSTT:
             from pydub import AudioSegment
             import io
 
+            print(f"STT: получено аудио {len(audio_data)} байт")
+
             # Конвертация в 16kHz mono 16-bit
             try:
                 audio = AudioSegment.from_file(io.BytesIO(audio_data))
+                print(f"STT: исходный формат - {audio.frame_rate}Hz, {audio.channels} ch, {audio.sample_width} bit")
                 audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
                 audio_data = audio.raw_data
+                print(f"STT: после конвертации {len(audio_data)} байт")
             except Exception as e:
-                print(f"Предупреждение: не удалось конвертировать аудио через pydub: {e}")
+                print(f"STT: ошибка конвертации через pydub: {e}")
                 # Если не удалось конвертировать, пробуем как есть
 
             # Создаём новый recognizer для этого запроса
@@ -102,12 +106,15 @@ class VoskSTT:
             # Обработка аудио
             if recognizer.AcceptWaveform(audio_data):
                 result = json.loads(recognizer.Result())
+                print(f"STT результат: {result}")
                 return result.get("text", "")
             else:
                 result = json.loads(recognizer.PartialResult())
+                print(f"STT partial результат: {result}")
                 return result.get("partial", "")
 
         except Exception as e:
+            print(f"STT ошибка: {e}")
             raise RuntimeError(f"Ошибка распознавания речи: {e}")
     
     def recognize_stream(self, audio_chunk: bytes) -> dict:
